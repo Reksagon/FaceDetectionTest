@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_main">
+
+    <fragment
+        android:id="@+id/navigation_main"
+        android:name="com.korniienko.facedetectiontest.ui.main.MainFragment"
+        tools:layout="@layout/fragment_main" >
+        <action
+            android:id="@+id/action_navigation_main_to_navigation_add_person"
+            app:destination="@id/navigation_add_person" />
+        <action
+            android:id="@+id/action_navigation_main_to_navigation_recognize_face"
+            app:destination="@id/navigation_recognize_face" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_add_person"
+        android:name="com.korniienko.facedetectiontest.ui.add_person.AddPersonFragment"
+        tools:layout="@layout/fragment_add_person" />
+
+    <fragment
+        android:id="@+id/navigation_recognize_face"
+        android:name="com.korniienko.facedetectiontest.ui.recognize_face.RecognizeFaceFragment"
+        tools:layout="@layout/fragment_recognize_face" />
+
+
+</navigation>
