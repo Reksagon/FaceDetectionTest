@@ -16,7 +16,7 @@
 
 ### **2. Клонування репозиторію**
 ```sh
-git clone https://github.com/your-repo/FaceDetectionTest.git
+git clone https://github.com/Reksagon/FaceDetectionTest.git
 cd FaceDetectionTest
 ```
 
