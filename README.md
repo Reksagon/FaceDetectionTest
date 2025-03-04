@@ -77,10 +77,18 @@ suspend fun detectFaces(bitmap: Bitmap): List<Rect> = withContext(Dispatchers.IO
 ---
 
 ### **3. Порівняння із збереженими обличчями**
-Для кожної особи з бази даних отримується її збережене фото та шукається збіг **Bounding Box (Rect)**:
+Для кожної особи з бази даних отримується її збережене фото у форматі **Base64**, після чого шукається збіг за **контурними точками**:
 ```kotlin
-if (storedFaces.any { storedFace -> detectedFaces.any { it.intersect(storedFace) } }) {
-    matchedPersons.add(person)
+fun compareFaceContours(contour1: List<PointF>, contour2: List<PointF>): Boolean {
+    if (contour1.size != contour2.size) return false
+    var totalDistance = 0f
+    for (i in contour1.indices) {
+        val dx = contour1[i].x - contour2[i].x
+        val dy = contour1[i].y - contour2[i].y
+        totalDistance += sqrt(dx * dx + dy * dy)
+    }
+    val avgDistance = totalDistance / contour1.size
+    return avgDistance < 70
 }
 ```
 Якщо знайдено збіг, повертається список розпізнаних осіб.
@@ -94,7 +102,7 @@ if (storedFaces.any { storedFace -> detectedFaces.any { it.intersect(storedFace)
 - **RecognizeFaceUseCaseTest** – Перевірка логіки порівняння облич
 - **PersonRepositoryImplTest** – Тестує збереження та отримання осіб із бази
 - **AddPersonUseCaseTest** – Перевіряє, чи можна додати особу в базу
-- **MainCoroutineRule** – Налаштовує корутини для тестування 
+- **MainCoroutineRule** – Налаштовує корутини для тестування
 
 Запустити тести можна командою:
 ```sh
@@ -124,5 +132,6 @@ if (storedFaces.any { storedFace -> detectedFaces.any { it.intersect(storedFace)
 
 ## ✨ **Автор**
 👨‍💻 **Denys Korniienko**  
-📧 Email: den.kornienko2012@gmail.com
-🔗 [GitHub](https://github.com/Reksagon)  
+📧 Email: den.kornienko2012@gmail.com  
+🔗 [GitHub](https://github.com/Reksagon)
+
