@@ -3,6 +3,7 @@ package com.korniienko.facedetectiontest.ui.recognize_face
 import android.Manifest
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
@@ -23,26 +24,41 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.korniienko.facedetectiontest.databinding.FragmentRecognizeFaceBinding
 import com.korniienko.facedetectiontest.domain.model.PersonDomain
+import com.korniienko.facedetectiontest.domain.repository.PersonRepository
 import com.korniienko.facedetectiontest.utils.FaceDetectionHelper
-import com.korniienko.facedetectiontest.utils.Utils.loadBitmapFromUri
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class RecognizeFaceFragment : Fragment() {
 
+    @Inject
+    lateinit var faceDetectionHelper: FaceDetectionHelper
     private lateinit var binding: FragmentRecognizeFaceBinding
     private val viewModel: RecognizeFaceViewModel by viewModels()
     private var imageUri: Uri? = null
 
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchCamera()
+        } else {
+            Toast.makeText(requireContext(), "Доступ до камери відхилено!", Toast.LENGTH_SHORT).show()
+        }
+    }
     @RequiresApi(Build.VERSION_CODES.P)
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             imageUri?.let {
-                binding.imageView.setImageURI(it)
+                val bitmap = faceDetectionHelper.loadBitmapFromUri(it, requireContext())
+                binding.imageView.setImageBitmap(bitmap)
                 checkPhoto(it)
                 binding.tvResult.text = ""
             } ?: run {
@@ -55,12 +71,18 @@ class RecognizeFaceFragment : Fragment() {
 
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
+            requireContext().contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
             imageUri = it
-            binding.imageView.setImageURI(it)
+            val bitmap = faceDetectionHelper.loadBitmapFromUri(imageUri!!, requireContext())
+            binding.imageView.setImageBitmap(bitmap)
             checkPhoto(it)
             binding.tvResult.text = ""
         }
     }
+
 
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -124,20 +146,27 @@ class RecognizeFaceFragment : Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.P)
     private fun takePhoto() {
-        val file = File(requireContext().cacheDir, "recognized_face_${System.currentTimeMillis()}.jpg")
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            launchCamera()
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    private fun launchCamera() {
         imageUri = FileProvider.getUriForFile(
             requireContext(),
             "${requireContext().packageName}.provider",
-            file
+            File(requireContext().filesDir, "person_${System.currentTimeMillis()}.jpg")
         )
-        Log.d("RecognizeFaceFragment", "Фото URI: $imageUri")
-
         takePictureLauncher.launch(imageUri)
     }
 
     private fun checkPhoto(uri: Uri) {
         lifecycleScope.launch {
-            val bitmap = loadBitmapFromUri(uri, requireContext())
+            val bitmap = faceDetectionHelper.loadBitmapFromUri(uri, requireContext())
 
             if (bitmap == null) {
                 Toast.makeText(requireContext(), "Помилка завантаження фото!", Toast.LENGTH_SHORT).show()
@@ -157,7 +186,7 @@ class RecognizeFaceFragment : Fragment() {
                 return@launch
             }
 
-            viewModel.recognizeFace(uri, requireContext())
+            viewModel.recognizeFace(bitmap, requireContext())
         }
     }
 

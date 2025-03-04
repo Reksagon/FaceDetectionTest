@@ -16,7 +16,7 @@ data class Person(
             id = id,
             name = name,
             position = position,
-            faceImagePath = faceImage
+            faceImageBase64 = faceImage
         )
     }
 
@@ -26,7 +26,7 @@ data class Person(
                 id = domain.id,
                 name = domain.name,
                 position = domain.position,
-                faceImage = domain.faceImagePath
+                faceImage = domain.faceImageBase64
             )
         }
     }

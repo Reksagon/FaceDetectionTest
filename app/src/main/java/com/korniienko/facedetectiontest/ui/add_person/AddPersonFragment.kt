@@ -2,12 +2,10 @@ package com.korniienko.facedetectiontest.ui.add_person
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,27 +20,35 @@ import androidx.navigation.findNavController
 import com.korniienko.facedetectiontest.R
 import com.korniienko.facedetectiontest.databinding.FragmentAddPersonBinding
 import com.korniienko.facedetectiontest.domain.model.PersonDomain
+import com.korniienko.facedetectiontest.domain.repository.PersonRepository
 import com.korniienko.facedetectiontest.utils.FaceDetectionHelper
-import com.korniienko.facedetectiontest.utils.Utils.loadBitmapFromUri
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AddPersonFragment : Fragment() {
 
+    @Inject
+    lateinit var faceDetectionHelper: FaceDetectionHelper
+
+
     private lateinit var binding: FragmentAddPersonBinding
     private val viewModel: AddPersonViewModel by viewModels()
     private var imageUri: Uri? = null
+
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            binding.imageView.setImageURI(imageUri)
+            val bitmap = faceDetectionHelper.loadBitmapFromUri(imageUri!!, requireContext())
+            binding.imageView.setImageBitmap(bitmap)
         }
     }
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             imageUri = it
-            binding.imageView.setImageURI(it)
+            val bitmap = faceDetectionHelper.loadBitmapFromUri(it, requireContext())
+            binding.imageView.setImageBitmap(bitmap)
         }
     }
 
@@ -57,6 +63,7 @@ class AddPersonFragment : Fragment() {
         binding.btnTakePhoto.setOnClickListener { showImagePickerDialog() }
         binding.btnSave.setOnClickListener { savePerson() }
         setupObserver()
+
 
     }
 
@@ -132,22 +139,26 @@ class AddPersonFragment : Fragment() {
         }
 
         lifecycleScope.launch {
-            val bitmap = loadBitmapFromUri(imageUri!!, requireContext())
+            val bitmap = faceDetectionHelper.loadBitmapFromUri(imageUri!!, requireContext())
 
             if (bitmap == null) {
+                Log.e("FaceDetection", "Завантаження фото не вдалося")
                 Toast.makeText(requireContext(), "Помилка завантаження фото!", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
+            Log.d("FaceDetection", "Фото для аналізу: ${bitmap.width}x${bitmap.height}")
+
             val detectedFaces = FaceDetectionHelper().detectFaces(bitmap)
 
             if (detectedFaces.isEmpty()) {
+                Log.e("FaceDetection", "Обличчя не знайдено")
                 Toast.makeText(requireContext(), "Обличчя не знайдено! Спробуйте інше фото.", Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
-            if(detectedFaces.size > 1)
-            {
+            if (detectedFaces.size > 1) {
+                Log.w("FaceDetection", "На фото більше одного обличчя")
                 Toast.makeText(requireContext(), "На фото більше одного обличчя! Спробуйте інше фото.", Toast.LENGTH_SHORT).show()
                 return@launch
             }
@@ -155,7 +166,7 @@ class AddPersonFragment : Fragment() {
             val person = PersonDomain(
                 name = name,
                 position = position,
-                faceImagePath = imageUri.toString()
+                faceImageBase64 = faceDetectionHelper.bitmapToBase64(bitmap)
             )
 
             viewModel.addPerson(person)

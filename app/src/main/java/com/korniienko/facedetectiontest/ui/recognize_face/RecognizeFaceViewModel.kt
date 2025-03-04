@@ -1,7 +1,9 @@
 package com.korniienko.facedetectiontest.ui.recognize_face
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,6 +14,8 @@ import com.korniienko.facedetectiontest.utils.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.sqrt
+import kotlin.random.Random
 
 
 @HiltViewModel
@@ -23,10 +27,10 @@ class RecognizeFaceViewModel @Inject constructor(
     private val _recognizedPersons = MutableLiveData<String>()
     val recognizedPersons: LiveData<String> = _recognizedPersons
 
-    fun recognizeFace(imageUri: Uri, context: Context) {
+    fun recognizeFace(bitmap: Bitmap, context: Context) {
         viewModelScope.launch {
             try {
-                val results = recognizeFaceUseCase.execute(imageUri, context)
+                val results = recognizeFaceUseCase.execute(bitmap, context)
                 if (results.isNotEmpty()) {
                     val personsText = results.joinToString("\n") { "${it.name}, ${it.position}" }
                     _recognizedPersons.postValue("Знайдено:\n$personsText")
@@ -48,4 +52,6 @@ class RecognizeFaceViewModel @Inject constructor(
             }
         }
     }
+
+
 }
