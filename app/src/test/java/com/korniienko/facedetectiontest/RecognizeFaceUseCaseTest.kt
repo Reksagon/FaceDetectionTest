@@ -35,14 +35,14 @@ class RecognizeFaceUseCaseTest {
 
     @Test
     fun `execute should return persons when faces detected`() = runTest {
-        val imageUri = mockk<Uri>()
+        val image = mockk<Bitmap>()
 
         val detectedFaces = listOf(Rect(10, 10, 50, 50))
         val testPerson = PersonDomain(0, "Іван", "Менеджер", "file://face1.jpg")
         coEvery { faceDetectionHelper.detectFaces(any()) } returns detectedFaces
         coEvery { repository.getAllPersons() } returns listOf(testPerson)
 
-        val result = recognizeFaceUseCase.execute(imageUri, mockk(relaxed = true)) // Мокаємо Context
+        val result = recognizeFaceUseCase.execute(image, mockk(relaxed = true)) // Мокаємо Context
 
         assertEquals(0, result.size)
     }
